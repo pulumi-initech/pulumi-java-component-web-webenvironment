@@ -34,4 +34,8 @@ public class WebEnvironmentArgs extends ResourceArgs {
 	private Output<String> zoneId;
 
 	private Output<String> subdomain;
+
+	private Output<Double> scaleOutRpsThreshold;
+
+	private Output<Double> scaleInRpsThreshold;
 }
