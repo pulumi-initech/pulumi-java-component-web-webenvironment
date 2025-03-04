@@ -30,7 +30,6 @@ import com.pulumi.aws.route53.Record;
 import com.pulumi.aws.route53.RecordArgs;
 import com.pulumi.aws.route53.inputs.GetZoneArgs;
 import com.pulumi.aws.route53.inputs.RecordAliasArgs;
-import com.pulumi.aws.route53.outputs.GetZoneResult;
 import com.pulumi.components.web.inputs.WebEnvironmentArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Export;
@@ -95,7 +94,7 @@ public class WebEnvironment extends ComponentResource {
 										.protocol("TCP")
 										.fromPort(22)
 										.toPort(22)
-										.cidrBlocks(args.getVpcCidr().apply(c -> Output.of(List.of(c))))
+										.cidrBlocks(args.getVpcCidr().applyValue(c -> List.of(c)))
 										.build(),
 								new SecurityGroupIngressArgs.Builder()
 										.protocol("TCP")
@@ -197,7 +196,7 @@ public class WebEnvironment extends ComponentResource {
 				.threshold(args.getScaleOutRpsThreshold())
 				.comparisonOperator("GreaterThanOrEqualToThreshold")
 				.statistic("Sum")
-				.alarmActions(scaleOutPolicy.arn().apply(arn -> Output.of(List.of(arn))))
+				.alarmActions(scaleOutPolicy.arn().applyValue(arn -> List.of(arn)))
 				.build(),
 				CustomResourceOptions.builder().parent(scaleOutPolicy).build());
 
@@ -211,7 +210,7 @@ public class WebEnvironment extends ComponentResource {
 				.threshold(args.getScaleInRpsThreshold())
 				.comparisonOperator("LessThanOrEqualToThreshold")
 				.statistic("Sum")
-				.alarmActions(scaleInPolicy.arn().apply(arn -> Output.of(List.of(arn))))
+				.alarmActions(scaleInPolicy.arn().applyValue(arn -> List.of(arn)))
 				.build(),
 				CustomResourceOptions.builder().parent(scaleInPolicy).build());
 
@@ -267,7 +266,7 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
-		Output<GetZoneResult> zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build());
+		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build());
 
 		var record = new Record(
 				"alias",
