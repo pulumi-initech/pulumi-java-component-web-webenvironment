@@ -25,9 +25,12 @@ import com.pulumi.aws.ec2.SecurityGroup;
 import com.pulumi.aws.ec2.SecurityGroupArgs;
 import com.pulumi.aws.ec2.inputs.SecurityGroupEgressArgs;
 import com.pulumi.aws.ec2.inputs.SecurityGroupIngressArgs;
+import com.pulumi.aws.route53.Route53Functions;
 import com.pulumi.aws.route53.Record;
 import com.pulumi.aws.route53.RecordArgs;
+import com.pulumi.aws.route53.inputs.GetZoneArgs;
 import com.pulumi.aws.route53.inputs.RecordAliasArgs;
+import com.pulumi.aws.route53.outputs.GetZoneResult;
 import com.pulumi.components.web.inputs.WebEnvironmentArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Export;
@@ -36,8 +39,6 @@ import com.pulumi.resources.ComponentResourceOptions;
 import com.pulumi.resources.CustomResourceOptions;
 import com.pulumi.tls.PrivateKey;
 import com.pulumi.tls.PrivateKeyArgs;
-
-import lombok.val;
 
 import java.util.Base64;
 import java.util.List;
@@ -266,16 +267,18 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
+		Output<GetZoneResult> zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build());
+
 		var record = new Record(
 				"alias",
 				new RecordArgs.Builder()
-						.zoneId(args.getZoneId())
+						.zoneId(zoneResult.applyValue(r -> r.zoneId()))
 						.name(args.getSubdomain())
 						.type("A")
 						.aliases(
 								new RecordAliasArgs.Builder()
 										.name(alb.dnsName())
-										.zoneId(alb.zoneId())
+										.zoneId(zoneResult.applyValue(r -> r.zoneId()))
 										.evaluateTargetHealth(true)
 										.build())
 						.build(),

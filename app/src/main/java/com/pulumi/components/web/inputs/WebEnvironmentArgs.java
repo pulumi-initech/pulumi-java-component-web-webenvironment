@@ -31,7 +31,7 @@ public class WebEnvironmentArgs extends ResourceArgs {
 
 	private Output<String> certificateArn;
 
-	private Output<String> zoneId;
+	private Output<String> zoneName;
 
 	private Output<String> subdomain;
 
