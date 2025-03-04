@@ -33,6 +33,7 @@ import com.pulumi.aws.route53.inputs.RecordAliasArgs;
 import com.pulumi.components.web.inputs.WebEnvironmentArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Export;
+import com.pulumi.deployment.InvokeOptions;
 import com.pulumi.resources.ComponentResource;
 import com.pulumi.resources.ComponentResourceOptions;
 import com.pulumi.resources.CustomResourceOptions;
@@ -266,7 +267,7 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
-		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build());
+		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build(), InvokeOptions.builder().parent(this).build());
 
 		var record = new Record(
 				"alias",
