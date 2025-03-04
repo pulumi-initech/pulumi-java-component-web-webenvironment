@@ -165,6 +165,7 @@ public class WebEnvironment extends ComponentResource {
 				name + "-alb",
 				new LoadBalancerArgs.Builder()
 						.internal(false)
+						.enableCrossZoneLoadBalancing(true)
 						.securityGroups(Output.all(albSg.id()))
 						.subnets(args.getPublicSubnetIds())
 						.build(),
@@ -267,7 +268,12 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
-		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build(), InvokeOptions.builder().parent(this).build());
+		var zoneResult = Route53Functions.getZone(
+							GetZoneArgs.builder()
+								.name(args.getZoneName())
+								.privateZone(false)
+								.build(),
+							InvokeOptions.builder().parent(this).build());
 
 		var record = new Record(
 				"alias",
@@ -278,7 +284,7 @@ public class WebEnvironment extends ComponentResource {
 						.aliases(
 								new RecordAliasArgs.Builder()
 										.name(alb.dnsName())
-										.zoneId(zoneResult.applyValue(r -> r.zoneId()))
+										.zoneId(alb.zoneId())
 										.evaluateTargetHealth(true)
 										.build())
 						.build(),
