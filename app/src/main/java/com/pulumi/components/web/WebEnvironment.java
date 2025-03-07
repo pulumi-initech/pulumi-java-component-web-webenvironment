@@ -81,8 +81,6 @@ public class WebEnvironment extends ComponentResource {
 										.build())
 						.build(),
 				CustomResourceOptions.builder()
-						.retainOnDelete(true)
-						.protect(true)
 						.parent(this)
 						.build());
 
