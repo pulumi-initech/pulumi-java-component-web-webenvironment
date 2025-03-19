@@ -21,21 +21,21 @@ import java.util.Map;
 
 public class DnsValidatedCertificate extends ComponentResource {
 
-	@Export(name = "certificateArn")
+	@Export
 	public final Output<String> certificateArn;
 
 	public DnsValidatedCertificate(String name, DnsValidatedCertificateArgs args, ComponentResourceOptions options) {
 		super("pulumi-components:index:DnsValidatedCertificate", name, options);
 
 		var cert = new Certificate(
-				"default",
+				name + "certificate",
 				new CertificateArgs.Builder().domainName(args.getDomainName()).validationMethod("DNS").build(),
 				CustomResourceOptions.builder().parent(this).build());
 
 		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build(), InvokeOptions.builder().parent(this).build());
 
 		Record certValidationRecord = new Record(
-				"domainName-valid",
+				name + "-domainname-valid",
 				new RecordArgs.Builder()
 						.name(cert.domainValidationOptions()
 								.applyValue(o -> o.getFirst().resourceRecordName().get()))
@@ -49,7 +49,7 @@ public class DnsValidatedCertificate extends ComponentResource {
 				CustomResourceOptions.builder().parent(this).build());
 
 		var certCertifcateValidation = new CertificateValidation(
-				"cert",
+				name + "certificate-validatiton",
 				new CertificateValidationArgs.Builder()
 						.certificateArn(cert.arn())
 						.validationRecordFqdns(certValidationRecord.fqdn().applyValue(fqdn -> List.of(fqdn)))
@@ -57,7 +57,5 @@ public class DnsValidatedCertificate extends ComponentResource {
 				CustomResourceOptions.builder().parent(cert).build());
 
 		this.certificateArn = certCertifcateValidation.certificateArn();
-
-		this.registerOutputs(Map.of("certificateArn", this.certificateArn));
 	}
 }

@@ -113,17 +113,17 @@ public class WebEnvironment extends ComponentResource {
 				CustomResourceOptions.builder().parent(this).build());
 
 		var material = new PrivateKey(
-				name,
+				name + "-private-key",
 				new PrivateKeyArgs.Builder().algorithm("RSA").build(),
 				CustomResourceOptions.builder().parent(this).build());
 
 		var sshKey = new KeyPair(
-				name,
+				name + "-key-pair",
 				new KeyPairArgs.Builder().publicKey(material.publicKeyOpenssh()).build(),
 				CustomResourceOptions.builder().parent(material).build());
 
 		var launchTemplate = new LaunchTemplate(
-				"launch-config",
+				name + "-launch-config",
 				new LaunchTemplateArgs.Builder()
 						.namePrefix(name + "-web")
 						.instanceType(args.getInstanceType())
@@ -172,14 +172,14 @@ public class WebEnvironment extends ComponentResource {
 
 		this.loadBalancerDnsName = alb.dnsName();
 
-		var scaleOutPolicy = new Policy("scaleOutPolicy", PolicyArgs.builder()
+		var scaleOutPolicy = new Policy(name + "-scale-out-olicy", PolicyArgs.builder()
 				.adjustmentType("ChangeInCapacity")
 				.scalingAdjustment(1)
 				.autoscalingGroupName(asg.name())
 				.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
-		var scaleInPolicy = new Policy("scaleInPolicy", PolicyArgs.builder()
+		var scaleInPolicy = new Policy(name + "-scale-in-policy", PolicyArgs.builder()
 				.adjustmentType("ChangeInCapacity")
 				.scalingAdjustment(-1)
 				.cooldown(180)
@@ -187,7 +187,7 @@ public class WebEnvironment extends ComponentResource {
 				.build(),
 				CustomResourceOptions.builder().parent(asg).build());
 
-		var scaleOutAlarm = new MetricAlarm("albHighRequestAlarm", MetricAlarmArgs.builder()
+		var scaleOutAlarm = new MetricAlarm(name + "-alb-high-request-alarm", MetricAlarmArgs.builder()
 				.name("alb-high-requests-alarm")
 				.namespace("AWS/ApplicationELB")
 				.metricName("RequestCount")
@@ -201,7 +201,7 @@ public class WebEnvironment extends ComponentResource {
 				.build(),
 				CustomResourceOptions.builder().parent(scaleOutPolicy).build());
 
-		var scaleInAlarm = new MetricAlarm("albLowRequestAlarm", MetricAlarmArgs.builder()
+		var scaleInAlarm = new MetricAlarm(name + "-alb-low-request-alarm", MetricAlarmArgs.builder()
 				.name("alb-low-requests-alarm")
 				.namespace("AWS/ApplicationELB")
 				.metricName("RequestCount")
@@ -275,7 +275,7 @@ public class WebEnvironment extends ComponentResource {
 							InvokeOptions.builder().parent(this).build());
 
 		var record = new Record(
-				"alias",
+				name + "-alb-alias-record",
 				new RecordArgs.Builder()
 						.zoneId(zoneResult.applyValue(r -> r.zoneId()))
 						.name(args.getSubdomain())
