@@ -17,7 +17,6 @@ import com.pulumi.resources.ComponentResource;
 import com.pulumi.resources.ComponentResourceOptions;
 import com.pulumi.resources.CustomResourceOptions;
 import java.util.List;
-import java.util.Map;
 
 public class DnsValidatedCertificate extends ComponentResource {
 
@@ -28,14 +27,14 @@ public class DnsValidatedCertificate extends ComponentResource {
 		super("pulumi-components:index:DnsValidatedCertificate", name, options);
 
 		var cert = new Certificate(
-				name + "certificate",
+				name,
 				new CertificateArgs.Builder().domainName(args.getDomainName()).validationMethod("DNS").build(),
 				CustomResourceOptions.builder().parent(this).build());
 
 		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build(), InvokeOptions.builder().parent(this).build());
 
 		Record certValidationRecord = new Record(
-				name + "-domainname-valid",
+				name + "-validation-record",
 				new RecordArgs.Builder()
 						.name(cert.domainValidationOptions()
 								.applyValue(o -> o.getFirst().resourceRecordName().get()))
@@ -49,7 +48,7 @@ public class DnsValidatedCertificate extends ComponentResource {
 				CustomResourceOptions.builder().parent(this).build());
 
 		var certCertifcateValidation = new CertificateValidation(
-				name + "certificate-validatiton",
+				name + "-validatiton",
 				new CertificateValidationArgs.Builder()
 						.certificateArn(cert.arn())
 						.validationRecordFqdns(certValidationRecord.fqdn().applyValue(fqdn -> List.of(fqdn)))
