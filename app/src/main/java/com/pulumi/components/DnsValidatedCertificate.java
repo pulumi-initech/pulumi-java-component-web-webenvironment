@@ -1,4 +1,4 @@
-package com.pulumi.components.acm;
+package com.pulumi.components;
 
 import com.pulumi.aws.acm.Certificate;
 import com.pulumi.aws.acm.CertificateArgs;
@@ -8,7 +8,7 @@ import com.pulumi.aws.route53.Record;
 import com.pulumi.aws.route53.RecordArgs;
 import com.pulumi.aws.route53.Route53Functions;
 import com.pulumi.aws.route53.inputs.GetZoneArgs;
-import com.pulumi.components.acm.inputs.DnsValidatedCertificateArgs;
+import com.pulumi.components.inputs.DnsValidatedCertificateArgs;
 import com.pulumi.core.annotations.Export;
 import com.pulumi.deployment.InvokeOptions;
 import com.pulumi.core.Either;
