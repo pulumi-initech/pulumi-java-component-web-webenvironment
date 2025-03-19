@@ -25,7 +25,7 @@ public class DnsValidatedCertificate extends ComponentResource {
 	public final Output<String> certificateArn;
 
 	public DnsValidatedCertificate(String name, DnsValidatedCertificateArgs args, ComponentResourceOptions options) {
-		super("acm:index:DnsValidatedCertificate", name, options);
+		super("pulumi-components:index:DnsValidatedCertificate", name, options);
 
 		var cert = new Certificate(
 				"default",

@@ -27,5 +27,5 @@ java {
 }
 
 application {
-    mainClass = "com.pulumi.components.web.App"
+    mainClass = "com.pulumi.components.App"
 }

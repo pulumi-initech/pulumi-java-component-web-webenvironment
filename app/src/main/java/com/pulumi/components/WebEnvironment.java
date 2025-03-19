@@ -46,14 +46,14 @@ import java.util.Map;
 
 public class WebEnvironment extends ComponentResource {
 
-	// @Export
+	@Export
 	public final Output<String> loadBalancerDnsName;
 
-	// @Export
+	@Export
 	public final Output<String> fqdn;
 
 	public WebEnvironment(String name, WebEnvironmentArgs args, ComponentResourceOptions options) {
-		super("web:index:WebEnvironment", name, options);
+		super("pulumi-components:index:WebEnvironment", name, options);
 
 		var albSg = new SecurityGroup(
 				name + "-alb-sg",
@@ -290,9 +290,5 @@ public class WebEnvironment extends ComponentResource {
 				CustomResourceOptions.builder().parent(this).build());
 
 		this.fqdn = record.fqdn();
-
-		// this.registerOutputs(Map.of(
-		// 		"loadBalancerDnsName", this.loadBalancerDnsName,
-		// 		"fqdn", this.fqdn));
 	}
 }
