@@ -1,4 +1,4 @@
-package com.pulumi.components.web.inputs;
+package com.pulumi.components.inputs;
 
 import com.pulumi.core.Output;
 import com.pulumi.resources.ResourceArgs;

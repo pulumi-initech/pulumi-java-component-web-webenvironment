@@ -1,4 +1,4 @@
-package com.pulumi.components.web;
+package com.pulumi.components;
 
 import com.pulumi.aws.alb.Listener;
 import com.pulumi.aws.alb.ListenerArgs;
@@ -30,7 +30,7 @@ import com.pulumi.aws.route53.Record;
 import com.pulumi.aws.route53.RecordArgs;
 import com.pulumi.aws.route53.inputs.GetZoneArgs;
 import com.pulumi.aws.route53.inputs.RecordAliasArgs;
-import com.pulumi.components.web.inputs.WebEnvironmentArgs;
+import com.pulumi.components.inputs.WebEnvironmentArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Export;
 import com.pulumi.deployment.InvokeOptions;

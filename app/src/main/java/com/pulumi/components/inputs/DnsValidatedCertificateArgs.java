@@ -1,4 +1,4 @@
-package com.pulumi.components.acm.inputs;
+package com.pulumi.components.inputs;
 
 import lombok.Getter;
 import lombok.Setter;
