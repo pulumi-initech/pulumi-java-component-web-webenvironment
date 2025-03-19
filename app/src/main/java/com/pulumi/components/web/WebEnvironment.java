@@ -46,10 +46,10 @@ import java.util.Map;
 
 public class WebEnvironment extends ComponentResource {
 
-	@Export(name = "loadBalancerDnsName")
+	// @Export
 	public final Output<String> loadBalancerDnsName;
 
-	@Export(name = "fqdn")
+	// @Export
 	public final Output<String> fqdn;
 
 	public WebEnvironment(String name, WebEnvironmentArgs args, ComponentResourceOptions options) {
@@ -82,6 +82,7 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder()
 						.parent(this)
+						.protect(true)
 						.build());
 
 		var instanceSg = new SecurityGroup(
@@ -290,8 +291,8 @@ public class WebEnvironment extends ComponentResource {
 
 		this.fqdn = record.fqdn();
 
-		this.registerOutputs(Map.of(
-				"loadBalancerDnsName", this.loadBalancerDnsName,
-				"fqdn", this.fqdn));
+		// this.registerOutputs(Map.of(
+		// 		"loadBalancerDnsName", this.loadBalancerDnsName,
+		// 		"fqdn", this.fqdn));
 	}
 }
