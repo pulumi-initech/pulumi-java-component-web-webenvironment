@@ -23,18 +23,26 @@ public class DnsValidatedCertificate extends ComponentResource {
 	@Export
 	public final Output<String> certificateArn;
 
+	@Export
+	public final Output<String> zoneId;
+
+	@Export
+	public final Output<List<String>> zoneValidationFqdns;
+
 	public DnsValidatedCertificate(String name, DnsValidatedCertificateArgs args, ComponentResourceOptions options) {
 		super("pulumi-components:index:DnsValidatedCertificate", name, options);
 
 		var cert = new Certificate(
-				name,
+				name + "-cert",
 				new CertificateArgs.Builder().domainName(args.getDomainName()).validationMethod("DNS").build(),
 				CustomResourceOptions.builder().parent(this).build());
 
 		var zoneResult = Route53Functions.getZone(GetZoneArgs.builder().name(args.getZoneName()).build(), InvokeOptions.builder().parent(this).build());
 
+		this.zoneId = zoneResult.applyValue(z -> z.zoneId());
+
 		Record certValidationRecord = new Record(
-				name + "-validation-record",
+				name + "-cert-validation-record",
 				new RecordArgs.Builder()
 						.name(cert.domainValidationOptions()
 								.applyValue(o -> o.getFirst().resourceRecordName().get()))
@@ -42,16 +50,18 @@ public class DnsValidatedCertificate extends ComponentResource {
 								.applyValue(o -> List.of(o.getFirst().resourceRecordValue().get())))
 						.type(cert.domainValidationOptions()
 								.applyValue(o -> Either.ofLeft(o.getFirst().resourceRecordType().get())))
-						.zoneId(zoneResult.applyValue(z -> z.zoneId()))
+						.zoneId(this.zoneId)
 						.ttl(60)
 						.build(),
 				CustomResourceOptions.builder().parent(this).build());
 
+		this.zoneValidationFqdns = certValidationRecord.fqdn().applyValue(fqdn -> List.of(fqdn));
+
 		var certCertifcateValidation = new CertificateValidation(
-				name + "-validatiton",
+				name + "-cert-validatiton",
 				new CertificateValidationArgs.Builder()
 						.certificateArn(cert.arn())
-						.validationRecordFqdns(certValidationRecord.fqdn().applyValue(fqdn -> List.of(fqdn)))
+						.validationRecordFqdns(zoneValidationFqdns)
 						.build(),
 				CustomResourceOptions.builder().parent(cert).build());
 
