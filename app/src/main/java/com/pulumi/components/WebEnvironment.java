@@ -1,22 +1,10 @@
 package com.pulumi.components;
 
-import com.pulumi.aws.alb.Listener;
-import com.pulumi.aws.alb.ListenerArgs;
-import com.pulumi.aws.alb.LoadBalancer;
-import com.pulumi.aws.alb.LoadBalancerArgs;
-import com.pulumi.aws.alb.TargetGroup;
-import com.pulumi.aws.alb.TargetGroupArgs;
-import com.pulumi.aws.autoscaling.Policy;
-import com.pulumi.aws.autoscaling.PolicyArgs;
-import com.pulumi.aws.alb.inputs.ListenerDefaultActionArgs;
-import com.pulumi.aws.alb.inputs.ListenerDefaultActionRedirectArgs;
 import com.pulumi.aws.autoscaling.Attachment;
 import com.pulumi.aws.autoscaling.AttachmentArgs;
 import com.pulumi.aws.autoscaling.Group;
 import com.pulumi.aws.autoscaling.GroupArgs;
 import com.pulumi.aws.autoscaling.inputs.GroupLaunchTemplateArgs;
-import com.pulumi.aws.cloudwatch.MetricAlarm;
-import com.pulumi.aws.cloudwatch.MetricAlarmArgs;
 import com.pulumi.aws.ec2.KeyPair;
 import com.pulumi.aws.ec2.KeyPairArgs;
 import com.pulumi.aws.ec2.LaunchTemplate;
@@ -30,6 +18,8 @@ import com.pulumi.aws.route53.Record;
 import com.pulumi.aws.route53.RecordArgs;
 import com.pulumi.aws.route53.inputs.GetZoneArgs;
 import com.pulumi.aws.route53.inputs.RecordAliasArgs;
+import com.pulumi.components.inputs.ApplicationLoadBalancerArgs;
+import com.pulumi.components.inputs.RpsAutoscalingPolicyArgs;
 import com.pulumi.components.inputs.WebEnvironmentArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Export;
@@ -160,119 +150,39 @@ public class WebEnvironment extends ComponentResource {
 						.build(),
 				CustomResourceOptions.builder().parent(launchTemplate).build());
 
-		var alb = new LoadBalancer(
-				name + "-alb",
-				new LoadBalancerArgs.Builder()
-						.internal(false)
-						.enableCrossZoneLoadBalancing(true)
-						.securityGroups(Output.all(albSg.id()))
-						.subnets(args.getPublicSubnetIds())
+		new RpsAutoscalingPolicy(
+				name + "rps-scaling-policy",
+				RpsAutoscalingPolicyArgs.builder()
+						.autoScalingGroupName(asg.name())
+						.highRequestThreshold(args.getScaleOutRpsThreshold())
+						.lowRequestThreshold(args.getScaleInRpsThreshold())
 						.build(),
-				CustomResourceOptions.builder().parent(this).build());
+				ComponentResourceOptions.builder().parent(asg).build());
 
-		this.loadBalancerDnsName = alb.dnsName();
-
-		var scaleOutPolicy = new Policy(name + "-scale-out-olicy", PolicyArgs.builder()
-				.adjustmentType("ChangeInCapacity")
-				.scalingAdjustment(1)
-				.autoscalingGroupName(asg.name())
-				.build(),
-				CustomResourceOptions.builder().parent(asg).build());
-
-		var scaleInPolicy = new Policy(name + "-scale-in-policy", PolicyArgs.builder()
-				.adjustmentType("ChangeInCapacity")
-				.scalingAdjustment(-1)
-				.cooldown(180)
-				.autoscalingGroupName(asg.name())
-				.build(),
-				CustomResourceOptions.builder().parent(asg).build());
-
-		var scaleOutAlarm = new MetricAlarm(name + "-alb-high-request-alarm", MetricAlarmArgs.builder()
-				.name("alb-high-requests-alarm")
-				.namespace("AWS/ApplicationELB")
-				.metricName("RequestCount")
-				.dimensions(Map.of("LoadBalancer", name + "-alb"))
-				.period(180)
-				.evaluationPeriods(2)
-				.threshold(args.getScaleOutRpsThreshold())
-				.comparisonOperator("GreaterThanOrEqualToThreshold")
-				.statistic("Sum")
-				.alarmActions(scaleOutPolicy.arn().applyValue(arn -> List.of(arn)))
-				.build(),
-				CustomResourceOptions.builder().parent(scaleOutPolicy).build());
-
-		var scaleInAlarm = new MetricAlarm(name + "-alb-low-request-alarm", MetricAlarmArgs.builder()
-				.name("alb-low-requests-alarm")
-				.namespace("AWS/ApplicationELB")
-				.metricName("RequestCount")
-				.dimensions(Map.of("LoadBalancer", name + "-alb"))
-				.period(180)
-				.evaluationPeriods(2)
-				.threshold(args.getScaleInRpsThreshold())
-				.comparisonOperator("LessThanOrEqualToThreshold")
-				.statistic("Sum")
-				.alarmActions(scaleInPolicy.arn().applyValue(arn -> List.of(arn)))
-				.build(),
-				CustomResourceOptions.builder().parent(scaleInPolicy).build());
-
-		var tg = new TargetGroup(
-				name + "-tg",
-				new TargetGroupArgs.Builder()
-						.targetType("instance")
-						.port(80)
-						.protocol("HTTP")
+		var loadBalancer = new ApplicationLoadBlancer(
+				name + "-lb",
+				ApplicationLoadBalancerArgs.builder()
+						.securityGroupIds(Output.all(albSg.id()))
+						.subnetIds(args.getPublicSubnetIds())
 						.vpcId(args.getVpcId())
-						.build(),
-				CustomResourceOptions.builder().parent(alb).build());
-
-		new Listener(
-				name + "-frontend-https",
-				new ListenerArgs.Builder()
-						.loadBalancerArn(alb.arn())
-						.port(443)
-						.protocol("HTTPS")
 						.certificateArn(args.getCertificateArn())
-						.defaultActions(
-								new ListenerDefaultActionArgs.Builder()
-										.type("forward")
-										.targetGroupArn(tg.arn())
-										.build())
 						.build(),
-				CustomResourceOptions.builder().parent(alb).build());
-
-		new Listener(
-				name + "-frontend-redir",
-				new ListenerArgs.Builder()
-						.loadBalancerArn(alb.arn())
-						.port(80)
-						.protocol("HTTP")
-						.defaultActions(
-								new ListenerDefaultActionArgs.Builder()
-										.type("redirect")
-										.redirect(
-												new ListenerDefaultActionRedirectArgs.Builder()
-														.protocol("HTTPS")
-														.port("443")
-														.statusCode("HTTP_301")
-														.build())
-										.build())
-						.build(),
-				CustomResourceOptions.builder().parent(alb).build());
+				ComponentResourceOptions.builder().parent(asg).build());
 
 		new Attachment(
 				name + "-alb-att",
 				new AttachmentArgs.Builder()
 						.autoscalingGroupName(asg.name())
-						.lbTargetGroupArn(tg.arn())
+						.lbTargetGroupArn(loadBalancer.targetGroupId)
 						.build(),
-				CustomResourceOptions.builder().parent(asg).build());
+				CustomResourceOptions.builder().parent(this).build());
 
 		var zoneResult = Route53Functions.getZone(
-							GetZoneArgs.builder()
-								.name(args.getZoneName())
-								.privateZone(false)
-								.build(),
-							InvokeOptions.builder().parent(this).build());
+				GetZoneArgs.builder()
+						.name(args.getZoneName())
+						.privateZone(false)
+						.build(),
+				InvokeOptions.builder().parent(this).build());
 
 		var record = new Record(
 				name + "-alb-alias-record",
@@ -282,13 +192,14 @@ public class WebEnvironment extends ComponentResource {
 						.type("A")
 						.aliases(
 								new RecordAliasArgs.Builder()
-										.name(alb.dnsName())
-										.zoneId(alb.zoneId())
+										.name(loadBalancer.dnsName)
+										.zoneId(loadBalancer.hostedZoneId)
 										.evaluateTargetHealth(true)
 										.build())
 						.build(),
 				CustomResourceOptions.builder().parent(this).build());
 
 		this.fqdn = record.fqdn();
+		this.loadBalancerDnsName = loadBalancer.dnsName;
 	}
 }
