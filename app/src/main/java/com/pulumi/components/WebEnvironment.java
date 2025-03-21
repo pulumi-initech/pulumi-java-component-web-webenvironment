@@ -151,7 +151,7 @@ public class WebEnvironment extends ComponentResource {
 				CustomResourceOptions.builder().parent(launchTemplate).build());
 
 		new RpsAutoscalingPolicy(
-				name + "rps-scaling-policy",
+				name + "-rps-scaling-policy",
 				RpsAutoscalingPolicyArgs.builder()
 						.autoScalingGroupName(asg.name())
 						.highRequestThreshold(args.getScaleOutRpsThreshold())
@@ -175,7 +175,7 @@ public class WebEnvironment extends ComponentResource {
 						.autoscalingGroupName(asg.name())
 						.lbTargetGroupArn(loadBalancer.targetGroupId)
 						.build(),
-				CustomResourceOptions.builder().parent(this).build());
+				CustomResourceOptions.builder().parent(loadBalancer).build());
 
 		var zoneResult = Route53Functions.getZone(
 				GetZoneArgs.builder()
