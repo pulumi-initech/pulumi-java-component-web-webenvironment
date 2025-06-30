@@ -1,30 +1,141 @@
-# Java Components in Pulumi
+# Pulumi Java Web Environment Components
 
-Pulumi Components are abstractions that typically aggregate sets of related resources, in order to encapsulate implementation details.
+A collection of reusable Pulumi components for deploying scalable web hosting environments on AWS using Java.
+
+## Overview
+
+This repository provides four main component resources that work together to create a complete, production-ready web hosting platform:
+
+- **WebEnvironment**: Complete web hosting environment with load balancing, auto-scaling, and DNS
+- **ApplicationLoadBalancer**: HTTPS-enabled load balancer with SSL termination
+- **DnsValidatedCertificate**: Auto-validated SSL certificates via Route53
+- **RpsAutoscalingPolicy**: Request-based auto scaling for dynamic capacity management
+
+## Components
+
+### WebEnvironment
+
+**Type:** `pulumi-components:index:WebEnvironment`
+
+The main orchestrator component that creates a complete web hosting environment.
+
+**Features:**
+- Auto Scaling Group with Launch Template for web servers
+- Security groups with appropriate ingress/egress rules
+- SSH key pair generation for EC2 access
+- Nginx web server installation via user data
+- Integration with Application Load Balancer
+- Route53 DNS alias record configuration
+
+**Outputs:**
+- `loadBalancerDnsName`: DNS name of the load balancer
+- `fqdn`: Fully qualified domain name
+
+### ApplicationLoadBalancer
+
+**Type:** `pulumi-components:index:ApplicationLoadBlancer`
+
+Internet-facing Application Load Balancer with HTTPS termination and HTTP redirect.
+
+**Features:**
+- Cross-zone load balancing enabled
+- HTTPS listener (port 443) with SSL certificate
+- HTTP listener (port 80) with 301 redirect to HTTPS
+- Target group for HTTP traffic on port 80
+
+**Outputs:**
+- `dnsName`: Load balancer DNS name
+- `targetGroupId`: Target group identifier
+- `hostedZoneId`: Route53 hosted zone ID
+
+### DnsValidatedCertificate
+
+**Type:** `pulumi-components:index:DnsValidatedCertificate`
+
+AWS Certificate Manager SSL certificate with automatic DNS validation.
+
+**Features:**
+- ACM certificate creation for specified domain
+- Automatic Route53 validation record creation
+- DNS-based validation workflow
+- Certificate validation completion waiting
+
+**Outputs:**
+- `certificateArn`: ARN of the validated certificate
+- `zoneId`: Route53 zone identifier
+- `zoneValidationFqdns`: Validation FQDNs
+
+### RpsAutoscalingPolicy
+
+**Type:** `pulumi-components:index:RpsAutoscalingPolicy`
+
+Auto scaling policies based on Application Load Balancer request metrics.
+
+**Features:**
+- Scale-out policy (+1 instance) for high traffic
+- Scale-in policy (-1 instance) for low traffic
+- CloudWatch alarms monitoring ALB RequestCount metric
+- Configurable request thresholds
+- 180-second evaluation periods and cooldown
+
+## Prerequisites
+
+- Java 23 or later
+- Gradle
+- Pulumi CLI
+- AWS credentials configured
+
+## Usage
+
+### Building the Components
+
+```bash
+./gradlew build
+```
+
+### Using in Pulumi Programs
+
+After building and running the component provider, you can use these components in your Pulumi programs:
 
 
-## Characteristics
-- Simple classes extending `Pulumi.ComponentResource`
-- Expose Pulumi outputs as class attributes
-- A class contstructor
-  - Parameters:
-    -  A name for the component
-    -  Any optional parameters- e.g. `WebEnvironmentArgs` custom class
-    -  ComponentResourceOptions- a bag of settings that controls resource behavior.  For example, resource deletion protection or explicit dependencies to other resources
-- Superclass consturctor:
-   	- We create a custom resource type for reference later and pass it to the superclass along with the component name and options. e.g. `my-package:index:my-custom-resource`
-- Resource declarations
-    - We build all of our resources within the constructor, and register our outputs
-    - Resources are primarily declarative in nature
-    - Thee Java builder pattern is used extensively for resource configuration
-	- Resources refer to each others' output properties, forming implicit relationships, which are used to calculate dependency ordering at runtime.
-	- We can also explicitly define relationships in the component options, via `parent` or `dependsOn`
-- Imperative actions
-  - We can perform imperative actions during execution, such fetching information from APIs or databases, reading and files, logging, etc.
+```java
+// Example usage of WebEnvironment component
+var webEnv = new WebEnvironment("my-web-env", WebEnvironmentArgs.builder()
+    .vpcId("vpc-12345")
+    .subnetIds(List.of("subnet-1", "subnet-2"))
+    .domainName("example.com")
+    .zoneName("example.com")
+    .instanceType("t3.micro")
+    .minSize(1)
+    .maxSize(5)
+    .highRequestThreshold(1000)
+    .lowRequestThreshold(100)
+    .build());
+```
 
-## Packaging
--  The component is packaged using Gradle (and Maven is supported as well)
--  The project is both a library, for use in other Java programs, and an application with a shim that allows us to register the component with the Pulumi runtime and make it accessible to other Pulumi languages.
+## Architecture
 
-## Distribution
-- The component source code is stored in a git repository and referenced directly from `git` - here the grade wrapper is required.
+The components follow a hierarchical architecture:
+
+```
+WebEnvironment (Main Orchestrator)
+├── ApplicationLoadBalancer
+│   └── DnsValidatedCertificate
+└── RpsAutoscalingPolicy
+```
+
+## Dependencies
+
+- Pulumi Java SDK v1.6.0
+- AWS SDK v6.66.3
+- TLS Provider v5.0.0
+- Lombok for code generation
+
+## Development
+
+The project uses Gradle with Java 23 and follows the component provider pattern with `ComponentProviderHost`.
+
+**Project Structure:**
+- `app/src/main/java/com/pulumi/components/` - Component implementations
+- `app/src/main/java/com/pulumi/components/inputs/` - Input argument classes
+- `app/src/main/java/com/pulumi/components/App.java` - Main provider entry point
